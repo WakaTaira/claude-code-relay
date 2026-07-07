@@ -5,7 +5,7 @@ description: Skill for autonomously driving the implementation phase of tasks wh
 
 # relay-opus
 
-A skill for autonomously driving the implementation phase after the design has been settled. A rebuild of the fable-oriented `/relay` for setups where Opus is the orchestrator.
+A skill for autonomously driving the implementation phase after the design has been settled.
 
 When this skill fires, **the design and approach are assumed to be already agreed in the main session.** How far the design was refined before invocation is at the user's discretion; this skill takes that agreement as given and starts implementing. Do not redo the design here.
 
@@ -26,7 +26,7 @@ The core of this skill is layer separation. **The core of relay-opus is the main
 - **Subagents (relay-*) = investigation, implementation, and verification layer**
   Carry out individual work items, each in its own independent context window.
 
-The biggest difference from the fable edition is that **the center of design judgment is not placed in main.** When an unexpected design judgment (an architectural fork, a hole in the spec) surfaces mid-implementation, main (4.6) does not decide on the spot; it takes one of the following:
+**The center of design judgment is not placed in main.** When an unexpected design judgment (an architectural fork, a hole in the spec) surfaces mid-implementation, main (4.6) does not decide on the spot; it takes one of the following:
 
 1. Delegate evidence-gathering to relay-investigator, have it return options and a recommendation, then main adjudicates
 2. If the judgment exceeds the agreed design, stop work and hand back to the user
