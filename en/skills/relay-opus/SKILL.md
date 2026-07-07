@@ -11,22 +11,22 @@ When this skill fires, **the design and approach are assumed to be already agree
 
 ## Model lineup assumptions
 
-- **Main session = pinned to Opus 4.6.** To avoid a tool-call defect observed with Opus 4.8 in Japanese-language main sessions, the main session runs on 4.6 (the model is selected by the user via `/model`; the skill does not change it)
-- **Investigation and review are `model: inherit`** (relay-investigator / relay-reviewer). They run on the same 4.6 as main, keeping the tool-call-defect avoidance consistent on the subagent side. If main is later switched to another model, these two follow automatically
-- **Hard implementation is `model: opus`** (relay-implementer). The alias resolves to the latest Opus (4.8). If garbled or inconsistent tool calls are observed in a subagent, drop that one task to relay-implementer-std (sonnet), continue, and report the event to the user
+- **Main session = Opus.** The model is selected by the user via `/model`; the skill does not change it
+- **Investigation and review are `model: inherit`** (relay-investigator / relay-reviewer). They run on the same model as main; if main is later switched to another model, these two follow automatically
+- **Hard implementation is `model: opus`** (relay-implementer). The alias resolves to the latest Opus
 - fable is not used (the design assumes it is absent from the lineup)
 - **Guard at invocation**: if invoked with a main model outside the opus family, the two inherit agents degrade without warning. Do not start work; warn the user and ask for instructions
 
 ## Division of roles
 
-The core of this skill is layer separation. **The core of relay-opus is the main session (Opus 4.6).**
+The core of this skill is layer separation. **The core of relay-opus is the main session (Opus).**
 
-- **Main session (Opus 4.6) = orchestration and audit layer**
+- **Main session (Opus) = orchestration and audit layer**
   Decomposes tasks, instructs subagents, audits the deliverables that come back, and manages progress. The main session does not touch implementation details directly. Keeping the main context free of grep dumps and trial-and-error logs is essential to preserving audit accuracy.
 - **Subagents (relay-*) = investigation, implementation, and verification layer**
   Carry out individual work items, each in its own independent context window.
 
-**The center of design judgment is not placed in main.** When an unexpected design judgment (an architectural fork, a hole in the spec) surfaces mid-implementation, main (4.6) does not decide on the spot; it takes one of the following:
+**The center of design judgment is not placed in main.** When an unexpected design judgment (an architectural fork, a hole in the spec) surfaces mid-implementation, main does not decide on the spot; it takes one of the following:
 
 1. Delegate evidence-gathering to relay-investigator, have it return options and a recommendation, then main adjudicates
 2. If the judgment exceeds the agreed design, stop work and hand back to the user
