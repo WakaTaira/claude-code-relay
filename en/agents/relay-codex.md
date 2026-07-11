@@ -38,7 +38,7 @@ SPEC_EOF
 
 ```bash
 timeout 600 codex exec \
-  --model gpt-5.5 \
+  --model gpt-5.6-terra \
   -c model_reasoning_effort=high \
   --sandbox workspace-write \
   --skip-git-repo-check \
@@ -52,18 +52,19 @@ Flag discipline (strict):
 | Flag | Reason |
 |---|---|
 | `--sandbox workspace-write` | Confines codex writes to the working tree. Never use `danger-full-access` |
-| `-c model_reasoning_effort=high` | This lane's value is GPT at maximum effort |
+| `-c model_reasoning_effort=high` | high is this lane's standard effort. The higher tiers (xhigh / max / ultra) consume heavy quota and are reserved for explicit orchestrator instruction |
 | `--skip-git-repo-check` + `--cd "$(pwd)"` | Makes the working root deterministic. Works outside a git repository too |
 | `- < "$SPEC"` | Prompt via stdin. Prevents quoting accidents and spec truncation |
 | `timeout 600` | 10 minutes wall clock. On timeout, mark "partial" and report the diff as of that point |
 
-`--model gpt-5.5` is a default, not a constant. If the orchestrator's instructions name a different codex model, use that.
+`--model gpt-5.6-terra` is a default, not a constant. If the orchestrator's instructions name a different codex model, use that.
 
 3. **Verify independently.** Read the diff with `git diff` / `git status`, rerun the completion-criteria verification command yourself, and read codex's final message in `"$FINAL"`. Codex's claim of success is not evidence. Your rerun is the evidence.
 
 ## Rules
 
 - Launch codex once per task. If the granularity calls for splitting, report it as a matter for the orchestrator to split in the task decomposition table
+- Rate limits, quota exhaustion, and model unavailability are facts of the environment; retrying does not clear them. Report immediately as "failed" ("partial" if there is a diff) with the exact error message and the diff as of that point. Rerouting is the orchestrator's responsibility
 - If codex's changes are wrong, report them as they are, together with the failing output. Adjudicating the fix is the orchestrator's responsibility
 - If the spec itself turns out to be wrong (an architecture-level problem), stop there and report
 

@@ -62,7 +62,7 @@ Do not design subagents from scratch. Choose from the relay-* agents defined in 
 | relay-reviewer | inherit (= main) / high | Evaluating diffs for quality, consistency, and security (read-only) |
 | relay-implementer | opus (4.8) / high | Changes spanning multiple files, implementations involving concurrency or boundary conditions, complex debugging |
 | relay-implementer-std | sonnet / medium | Code generation and refactoring that follows existing patterns |
-| relay-codex | sonnet / medium (implementation itself is GPT via codex exec) | Cross-vendor implementation of fully specified tasks. Streams the spec to the Codex CLI and independently verifies the result |
+| relay-codex | sonnet / medium (implementation itself is GPT via codex exec) | Default lane for implementation tasks. Streams the settled spec to the Codex CLI and independently verifies the result |
 | relay-verifier | sonnet / medium | Running builds, tests, and lint, and returning a first-pass assessment (no fixing) |
 | relay-mechanic | haiku / low | File exploration, simple substitutions, boilerplate generation (judgment-free work only) |
 
@@ -70,7 +70,7 @@ Language-level convention and style issues are resolved mechanically with linter
 
 #### Cross-vendor implementation lane (relay-codex)
 
-Implementation tasks specified firmly enough to write out all 4 required prompt items, with no room for discretion, may be routed to relay-codex. Having GPT (Codex CLI) do the implementation catches problems a single vendor's model family would collectively miss. It presupposes that the completion criteria include an executable verification command; tasks with remaining discretion or design judgment go to the relay-implementer family. If relay-codex returns "failed (codex unavailable)", reroute the same spec to relay-implementer or relay-implementer-std.
+relay-codex is the default lane for implementation tasks. Implementation tasks whose 4 required prompt items can be written out in full, with completion criteria that include an executable verification command, are routed to relay-codex as a rule. Having GPT (Codex CLI) do the implementation catches problems a single vendor's model family would collectively miss. The routing axis is discretion, not task size — a change spanning multiple files still goes to codex if the spec is settled, while tasks with remaining discretion, design judgment, or complex debugging go to the relay-implementer family. If relay-codex returns "failed" (codex unavailable, including quota exhaustion and rate limits), reroute the same spec to relay-implementer or relay-implementer-std.
 
 #### Two-axis review split
 

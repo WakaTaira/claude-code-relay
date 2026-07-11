@@ -38,7 +38,7 @@ SPEC_EOF
 
 ```bash
 timeout 600 codex exec \
-  --model gpt-5.5 \
+  --model gpt-5.6-terra \
   -c model_reasoning_effort=high \
   --sandbox workspace-write \
   --skip-git-repo-check \
@@ -52,18 +52,19 @@ timeout 600 codex exec \
 | フラグ | 理由 |
 |---|---|
 | `--sandbox workspace-write` | codex の書き込みを作業ツリーに限定する。`danger-full-access` は使用しない |
-| `-c model_reasoning_effort=high` | このレーンの価値は最大 effort の GPT である |
+| `-c model_reasoning_effort=high` | high がこのレーンの標準 effort。上位段（xhigh / max / ultra）はクォータ消費が大きく、統括者が明示指名したときに限る |
 | `--skip-git-repo-check` + `--cd "$(pwd)"` | 作業ルートを決定的にする。git リポジトリ外でも動く |
 | `- < "$SPEC"` | プロンプトは stdin 経由。クォート事故と spec の切り詰めを防ぐ |
 | `timeout 600` | 壁時計 10 分。タイムアウト時は「部分完了」とし、その時点の差分を報告する |
 
-`--model gpt-5.5` は既定値であり定数ではない。統括者の指示が別の codex モデルを指名していればそちらを使う。
+`--model gpt-5.6-terra` は既定値であり定数ではない。統括者の指示が別の codex モデルを指名していればそちらを使う。
 
 3. **独立に検証する。** `git diff` / `git status` で差分を読み、完了条件の検証コマンドを自分で再実行し、`"$FINAL"` の codex 最終メッセージを読む。codex の成功主張は証拠ではない。あなたの再実行が証拠である。
 
 ## 規則
 
 - codex の起動は 1 タスクにつき 1 回とする。分割が必要な粒度なら、統括者がタスク分解表で分割するべき事案として報告する
+- レート制限・クォータ枯渇・モデル利用不可は環境側の事実であり、リトライでは解消しない。正確なエラーメッセージとその時点の差分とともに、即座に「失敗」（差分があれば「部分完了」）として報告する。振り直しは統括者の責務である
 - codex の変更が誤っていた場合、失敗した出力とともにそのまま報告する。修正の裁定は統括者の責務である
 - 仕様そのものの誤り（アーキテクチャレベルの問題）が判明したら、そこで停止して報告する
 
