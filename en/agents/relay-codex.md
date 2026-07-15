@@ -20,21 +20,20 @@ Confirm the proxy is in a state where it can serve GPT. The client key is the fi
 
 ```bash
 if [ -f ~/.cli-proxy-api/config.yaml ]; then
-  # Running locally: read config.yaml directly
+  # Common path: running on the same machine as the proxy (Linux, macOS, or WSL alike)
   KEY=$(awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,"");gsub(/"/,"");print;exit}' ~/.cli-proxy-api/config.yaml)
 elif command -v wsl.exe >/dev/null 2>&1; then
-  # Fallback when running from a native Windows shell: the proxy and config.yaml live in WSL,
-  # and the proxy itself reaches 127.0.0.1:8317 from the Windows side via localhost forwarding,
-  # so only the key read needs to go through wsl.exe. Strip the trailing CR introduced by Git Bash.
+  # Branch scoped to native Windows only (used when the proxy is kept running inside WSL).
+  # The proxy itself is reachable via localhost forwarding, so only the key read needs to go through WSL.
+  # Strip the trailing CR introduced by Git Bash. This branch assumes Git Bash (bundled with
+  # Claude Code) provides bash / awk / curl / mktemp / timeout.
   KEY=$(wsl.exe -e sh -lc "awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,\"\");gsub(/\"/,\"\");print;exit}' ~/.cli-proxy-api/config.yaml" | tr -d '\r')
 fi
 # Do not put the token in argv: pass the Authorization header via stdin (-H @-)
 printf 'Authorization: Bearer %s' "$KEY" | curl -sf -H @- http://127.0.0.1:8317/v1/models | grep -q 'gpt-5.6-terra'
 ```
 
-Running natively on Windows assumes Git Bash (bundled with Claude Code) provides bash / awk / curl / mktemp / timeout.
-
-- If any of the following holds — `config.yaml` does not exist and `wsl.exe` is unavailable, the key cannot be read through either path, `curl` cannot connect (proxy down, 401, etc.), or the named model is absent from `/v1/models` — stop there and report immediately as "Result: failed" with the exact error message. Do not implement in its place.
+- The pre-flight has exactly one pass condition — **the key must be obtainable, and the target model (the orchestrator's named model, or, absent a name, a model the environment can actually serve) must be listed in `/v1/models`.** If it is not met, stop there and report immediately as "Result: failed" with the exact error message. Do not implement in its place.
 - `gpt-5.6-terra(high)` is an example as of this writing; the models visible in `/v1/models` differ by plan. Adjust the pre-flight `grep` and the downstream `--model` to the orchestrator's named model (or, absent a name, to a model the environment can actually serve).
 - The orchestrator chose this lane for vendor diversity — a cross-vendor lane that silently morphs into a Claude lane is worse than a loud failure. Show the failure as it is.
 
