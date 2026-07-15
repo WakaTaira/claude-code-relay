@@ -19,12 +19,22 @@ CLIProxyAPI 自体のインストール・設定（`~/.cli-proxy-api/config.yaml
 プロキシが GPT を配れる状態にあることを確認する。クライアントキーは `~/.cli-proxy-api/config.yaml` の `api-keys` 先頭値であり、**実行時に読み取る**（キーの直書き・ログ出力はしない）。
 
 ```bash
-KEY=$(awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,"");gsub(/"/,"");print;exit}' ~/.cli-proxy-api/config.yaml)
+if [ -f ~/.cli-proxy-api/config.yaml ]; then
+  # ローカルで直接実行している場合: config.yaml をそのまま読む
+  KEY=$(awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,"");gsub(/"/,"");print;exit}' ~/.cli-proxy-api/config.yaml)
+elif command -v wsl.exe >/dev/null 2>&1; then
+  # Windows ネイティブから実行している場合のフォールバック: プロキシと config.yaml は WSL 側に常駐し、
+  # プロキシ自体は localhost 転送で Windows 側からも 127.0.0.1:8317 に届くため、キーの読取だけ wsl.exe 経由で行う。
+  # Git Bash（CRLF 変換対象）を通るため、末尾 CR は tr -d で除去する。
+  KEY=$(wsl.exe -e sh -lc "awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,\"\");gsub(/\"/,\"\");print;exit}' ~/.cli-proxy-api/config.yaml" | tr -d '\r')
+fi
 # トークンを argv に載せない: Authorization ヘッダは stdin（-H @-）で渡す
 printf 'Authorization: Bearer %s' "$KEY" | curl -sf -H @- http://127.0.0.1:8317/v1/models | grep -q 'gpt-5.6-terra'
 ```
 
-- `config.yaml` またはキーが読めない、`curl` が疎通しない（プロキシ停止・401 等）、指名モデルが `/v1/models` に存在しない——のいずれかなら、そこで停止し、「結果: 失敗」として正確なエラーメッセージとともに即座に報告する。実装の代行はしない。
+Windows ネイティブでの実行は Git Bash（Claude Code 同梱要件）上で bash / awk / curl / mktemp / timeout が使える前提とする。
+
+- `config.yaml` が存在せず `wsl.exe` も使えない、または両方の経路でキーが読めない、`curl` が疎通しない（プロキシ停止・401 等）、指名モデルが `/v1/models` に存在しない——のいずれかなら、そこで停止し、「結果: 失敗」として正確なエラーメッセージとともに即座に報告する。実装の代行はしない。
 - `gpt-5.6-terra(high)` は執筆時点の一例であり、契約プランによって `/v1/models` に見えるモデルは異なる。プリフライトの `grep` と後段の `--model` は、統括者の指名モデル（指名がなければ環境で実際に配れるモデル）に合わせて読み替える。
 - 統括者はベンダー多様性のためにこのレーンを選んでいる——静かに Claude レーンへ化けたクロスベンダーレーンは、大声の失敗より悪い。失敗はそのまま見せる。
 
