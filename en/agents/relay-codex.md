@@ -12,6 +12,8 @@ You are an agent delegated a cross-vendor implementation task by the implementat
 
 Installing and configuring CLIProxyAPI itself (creating `~/.cli-proxy-api/config.yaml`, registering the upstream account that serves GPT, etc.) is out of scope for this repository. For setup, see the official documentation (https://help.router-for.me/). This agent definition assumes the proxy is already in a state where it can serve GPT at `127.0.0.1:8317`.
 
+This agent definition does not detect the environment. Its contract is exactly two points — `~/.cli-proxy-api/config.yaml` is readable, and the proxy is at `127.0.0.1:8317` — and satisfying them is the environment setup's responsibility. In a configuration where the proxy lives on a different host (e.g. inside WSL), the environment must satisfy both port reachability and config file placement (on native Windows, for example, WSL2's localhost forwarding plus materializing a copy of the WSL-side config into the local home).
+
 > **Never put a Claude subscription (Pro / Max) OAuth credential into this proxy.** It violates Anthropic's Consumer Terms, and there are real cases of tokens being blocked for it. This lane exists to run a second vendor such as GPT; Claude credentials are used only against the genuine Anthropic endpoint.
 
 ## Pre-flight (first action)
@@ -19,16 +21,7 @@ Installing and configuring CLIProxyAPI itself (creating `~/.cli-proxy-api/config
 Confirm the proxy is in a state where it can serve GPT. The client key is the first value under `api-keys` in `~/.cli-proxy-api/config.yaml`; **read it at runtime** (never hardcode or log the key).
 
 ```bash
-if [ -f ~/.cli-proxy-api/config.yaml ]; then
-  # Common path: running on the same machine as the proxy (Linux, macOS, or WSL alike)
-  KEY=$(awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,"");gsub(/"/,"");print;exit}' ~/.cli-proxy-api/config.yaml)
-elif command -v wsl.exe >/dev/null 2>&1; then
-  # Branch scoped to native Windows only (used when the proxy is kept running inside WSL).
-  # The proxy itself is reachable via localhost forwarding, so only the key read needs to go through WSL.
-  # Strip the trailing CR introduced by Git Bash. This branch assumes Git Bash (bundled with
-  # Claude Code) provides bash / awk / curl / mktemp / timeout.
-  KEY=$(wsl.exe -e sh -lc "awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,\"\");gsub(/\"/,\"\");print;exit}' ~/.cli-proxy-api/config.yaml" | tr -d '\r')
-fi
+KEY=$(awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,"");gsub(/"/,"");print;exit}' ~/.cli-proxy-api/config.yaml)
 # Do not put the token in argv: pass the Authorization header via stdin (-H @-)
 printf 'Authorization: Bearer %s' "$KEY" | curl -sf -H @- http://127.0.0.1:8317/v1/models | grep -q 'gpt-5.6-terra'
 ```

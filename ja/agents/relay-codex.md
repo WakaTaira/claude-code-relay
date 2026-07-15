@@ -12,6 +12,8 @@ effort: medium
 
 CLIProxyAPI 自体のインストール・設定（`~/.cli-proxy-api/config.yaml` の作成、GPT を配るための上流アカウント登録など）はこのリポジトリのスコープ外である。セットアップは公式ドキュメント（https://help.router-for.me/）を参照すること。本エージェント定義は、プロキシが `127.0.0.1:8317` で GPT を配れる状態にあることを前提とする。
 
+本エージェント定義は環境を判別しない。前提とする契約は「`~/.cli-proxy-api/config.yaml` が読める」「プロキシが `127.0.0.1:8317` に居る」の 2 点のみであり、これを満たすのは環境セットアップの責務である。プロキシを別ホスト（例: WSL 側）に置く構成では、ポート到達と設定ファイルの配置を環境側で満たすこと（Windows ネイティブなら WSL2 の localhost 転送に加え、WSL 側 config をローカル home へ実体化コピーする等）。
+
 > **Claude のサブスク（Pro / Max）OAuth をこのプロキシに入れてはならない。** Anthropic の消費者向け利用規約（Consumer Terms）に反し、実際にトークンがブロックされた事例がある。このレーンは GPT 等の第二ベンダーを載せるためのものであり、Claude 認証は本物の Anthropic エンドポイントにのみ用いる。
 
 ## プリフライト（最初の行動）
@@ -19,15 +21,7 @@ CLIProxyAPI 自体のインストール・設定（`~/.cli-proxy-api/config.yaml
 プロキシが GPT を配れる状態にあることを確認する。クライアントキーは `~/.cli-proxy-api/config.yaml` の `api-keys` 先頭値であり、**実行時に読み取る**（キーの直書き・ログ出力はしない）。
 
 ```bash
-if [ -f ~/.cli-proxy-api/config.yaml ]; then
-  # 通常経路: プロキシと同じマシンで実行している場合（Linux / macOS / WSL のいずれも）
-  KEY=$(awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,"");gsub(/"/,"");print;exit}' ~/.cli-proxy-api/config.yaml)
-elif command -v wsl.exe >/dev/null 2>&1; then
-  # Windows ネイティブ専用の分岐（プロキシを WSL 側に常駐させている構成）。
-  # プロキシへは localhost 転送で届くため、キーの読取だけ WSL を経由する。末尾 CR は Git Bash の CRLF 対策。
-  # 実行は Git Bash（Claude Code 同梱要件）上で bash / awk / curl / mktemp / timeout が使える前提とする。
-  KEY=$(wsl.exe -e sh -lc "awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,\"\");gsub(/\"/,\"\");print;exit}' ~/.cli-proxy-api/config.yaml" | tr -d '\r')
-fi
+KEY=$(awk '/^api-keys:/{f=1;next} f&&/^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,"");gsub(/"/,"");print;exit}' ~/.cli-proxy-api/config.yaml)
 # トークンを argv に載せない: Authorization ヘッダは stdin（-H @-）で渡す
 printf 'Authorization: Bearer %s' "$KEY" | curl -sf -H @- http://127.0.0.1:8317/v1/models | grep -q 'gpt-5.6-terra'
 ```
