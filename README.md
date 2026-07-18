@@ -1,5 +1,10 @@
 # claude-code-relay
 
+> [!NOTE]
+> **No longer updated (2026-07).** Maintaining this repo separately became more upkeep than it was worth, so the living source now lives in my personal [dotclaude](https://github.com/WakaTaira/dotclaude) repository. Everything here stays as-is — including the `en/` translations, which will not be updated.
+>
+> **更新停止（2026-07）。** 個別に管理するのが手間になったため、実体は個人用の [dotclaude](https://github.com/WakaTaira/dotclaude) に統合した。このリポジトリは現状のまま残すが、今後の更新は行わない（`en/` の英訳も更新されない）。
+
 Skills and subagent definitions that turn a Claude Code main session into a design / orchestration / audit layer, delegating implementation to seven fixed `relay-*` subagents routed by difficulty (opus → haiku) — with an optional `/goal`-driven unattended loop (`RELAY-STATUS` protocol).
 
 Meant to run **after the design is settled** — e.g. via plan mode or an interview skill such as [grilling / grill-with-docs](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs). relay takes the agreement as given and drives the implementation phase: task decomposition → dispatch → audit → verification, stopping only where human judgment (design changes, hands-on testing) is required.
